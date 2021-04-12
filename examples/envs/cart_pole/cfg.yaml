@@ -1,0 +1,25 @@
+environment:
+  seed: 999
+  render: True
+  record_video: True
+  num_envs: 100
+  num_threads: 4
+  simulation_dt: 0.01
+  control_dt: 0.05
+  max_time: 5.0
+  balancing_reward_coeff: -0.0
+  action_reward_coeff: -0.01
+  terminal_reward_coeff: -10
+
+algorithm:
+  gpu: 0  # None for cpu
+  discount_factor: 0.99
+  ent_coef: 0
+  learning_rate: 1e-4
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  gae_lam: 0.95
+  num_mini_batches: 4
+  num_epochs: 10
+  cliprange: 0.2
+  total_algo_updates: 1000

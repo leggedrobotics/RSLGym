@@ -1,0 +1,111 @@
+#! /usr/bin/python3
+import subprocess
+import argparse
+import os
+import sys
+from termcolor import colored
+import rslgym.wrapper
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+
+    parser_build = subparsers.add_parser('build', help='Build python wrapper of your envioronment. see `rslgym build -h` for command usage')
+
+    parser_build.add_argument('env', type=str,
+                               help='Enviroment folder path.')
+    parser_build.add_argument('--name', type=str,
+                               help='Name of the env package', default="")
+    parser_build.add_argument('--opencv', action='store_true',
+                               help='Use OpenCV in your env.')
+    parser_build.add_argument('--debug', action='store_true',
+                               help='Build debug executable.')
+    parser_build.add_argument('--user', action='store_false',
+                               help='Install with --user option (default true).')
+    parser_build.add_argument('--no-user', action='store_true',
+                               help='install without --user option.')
+    parser_build.set_defaults(handler=build)
+
+
+    parser_debug = subparsers.add_parser('debug', help='Use valgrind for debugging. see `rslgym debug -h` for command usage')
+
+    parser_debug.add_argument('render', type=str,
+                              choices=['render', 'no_render'],
+                              help='Choose render or no_render.')
+    parser_debug.add_argument('--resource', type=str, default='./rsc',
+                              help='Enviroment resource folder path. Default is /rsc .')
+    parser_debug.add_argument('--cfg', type=str, default='./cfg.yaml',
+                               help='Enviroment config file. Default is /cfg.yaml .')
+    parser_debug.add_argument('--xml', type=str,
+                               help='Result will be outputed as this xml file name. You can visualize with `valkyrie -l <xml file>`')
+    parser_debug.set_defaults(handler=debug)
+
+    args, unknown = parser.parse_known_args()
+
+    if hasattr(args, 'handler'):
+        args.handler(args, unknown)
+    else:
+        parser.print_help()
+
+
+def build(args, unknown):
+    current_path = os.getcwd()
+    absolute_path = os.path.realpath(os.path.join(current_path, args.env))
+    env_name = os.path.basename(absolute_path)
+    if args.name:
+        env_name = args.name
+
+    if not os.path.exists(absolute_path + "/Environment.hpp"):
+        print(colored("[ERROR]: The env folder should contain Environment.hpp", 'red'))
+        exit(0)
+
+    module_path = os.path.abspath(rslgym.wrapper.__file__)
+    dirname = os.path.dirname(module_path)
+    root = os.path.realpath(dirname)
+    setup_path = root + "/setup.py"
+    os.chdir(root)
+    command = [setup_path, "install", "--env", absolute_path, "--name", env_name] + unknown
+    # install to virtualenv if activated
+    if os.environ.get('VIRTUAL_ENV') is not None:
+        path_to_python = os.environ.get('VIRTUAL_ENV') + '/bin/python'
+        command = [path_to_python] + command
+    else:
+        command = ['python3'] + command
+        # only add the --user flag if not installed in virtualenv
+        if not args.no_user:
+            command += ["--user"]
+    if args.debug:
+        command += ["--Debug"]
+    if args.opencv:
+        command += ["--opencv"]
+    res = subprocess.run(command)
+
+
+def debug(args, unknown):
+    current_path = os.getcwd()
+    module_path = os.path.abspath(rslgym.wrapper.__file__)
+    dirname = os.path.dirname(module_path)
+    root = os.path.realpath(dirname)
+    builddir = os.path.realpath(root + "/build/temp.linux-x86_64-" + str(sys.version_info.major) + "." + str(sys.version_info.minor))
+
+    if not os.path.exists(builddir + "/debug_app"):
+        print('Looking for the debug_app here: ', builddir)
+        print(colored("[ERROR]: The environment is not built with debug argument. Please build with --debug option.", 'red'))
+        exit(0)
+    debug_app = os.path.realpath(builddir + "/debug_app")
+
+    config_path = os.path.realpath(os.path.join(current_path, args.cfg))
+    resource_path = os.path.realpath(os.path.join(current_path, args.resource))
+
+    if args.xml is not None:
+        options = ['--tool=memcheck', '--leak-check=full', '--xml=yes', '--xml-file={}'.format(args.xml)]
+    else:
+        options = ['--tool=memcheck', '--leak-check=full']
+
+    command = ["valgrind", *options, debug_app, resource_path, config_path, args.render] + unknown
+    res = subprocess.run(command)
+
+
+if __name__ == '__main__':
+    main()

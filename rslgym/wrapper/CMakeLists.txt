@@ -1,0 +1,56 @@
+cmake_minimum_required(VERSION 3.10)
+project(rslgym_wrapper)
+set(CMAKE_CXX_STANDARD 14)
+option(USE_OPENCV "Use OpenCV" OFF)
+
+find_package(pybind11 2.3 REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(raisimOgre 0.6.0 CONFIG REQUIRED)
+find_package(OpenMP REQUIRED)
+
+if(USE_OPENCV)
+  find_package(OpenCV REQUIRED)
+endif(USE_OPENCV)
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+
+message("[RAISIM_GYM] including directory ${RSG_ENVIRONMENT_INCLUDE_PATH} ${${PROJECT_NAME}_INCLUDE_DIRS}")
+message("ENV_NAME=${ENV_NAME}")
+message("USE_OPENCV=${USE_OPENCV}")
+
+set(PACKAGE_NAME "_rslgym_wrapper")
+
+if (CMAKE_INCLUDE_FILE)
+  message("CMake include file: ${CMAKE_INCLUDE_FILE}")
+  include(${CMAKE_INCLUDE_FILE})
+endif()
+
+if( ENV_NAME ) 
+  set(PACKAGE_NAME ${ENV_NAME})
+  message("PACKAGE_NAME set to ${PACKAGE_NAME}")
+  ADD_DEFINITIONS(-DMODULE_NAME=${PACKAGE_NAME})
+endif()
+
+pybind11_add_module(${PACKAGE_NAME} src/module.cpp)
+if(USE_OPENCV)
+  target_link_libraries(${PACKAGE_NAME} PRIVATE raisim::raisim raisim::raisimOgre yaml-cpp ${EXTRA_LIBS} ${OpenCV_LIBS})
+else()
+  target_link_libraries(${PACKAGE_NAME} PRIVATE raisim::raisim raisim::raisimOgre yaml-cpp ${EXTRA_LIBS})
+endif(USE_OPENCV)
+
+target_include_directories(${PACKAGE_NAME} PUBLIC include ${RSG_ENVIRONMENT_INCLUDE_PATH} ${EIGEN3_INCLUDE_DIRS} ${${PROJECT_NAME}_INCLUDE_DIRS})
+target_compile_options(${PACKAGE_NAME} PRIVATE -mtune=native -fPIC -O3)
+
+if (CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message("[RAISIM_GYM]BUILDING THE DEBUG APP")
+    add_executable(debug_app src/debug_app.cpp)
+    if(USE_OPENCV)
+      target_link_libraries(debug_app PRIVATE raisim::raisim raisim::raisimOgre yaml-cpp ${OpenCV_LIBS})
+    else()
+      target_link_libraries(debug_app PRIVATE raisim::raisim raisim::raisimOgre yaml-cpp)
+    endif(USE_OPENCV)
+    target_include_directories(debug_app PUBLIC include ${RSG_ENVIRONMENT_INCLUDE_PATH} ${EIGEN3_INCLUDE_DIRS})
+    target_compile_options(debug_app PRIVATE -mtune=native -fPIC -g -O0)
+endif()

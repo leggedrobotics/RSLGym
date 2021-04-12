@@ -1,0 +1,26 @@
+environment:
+  seed: 999
+  render: True
+  num_envs: 10
+  eval_every_n: 50
+  num_threads: 10
+  simulation_dt: 0.0025
+  control_dt: 0.01
+  max_time: 4.0
+  forward_vel_reward_coeff: 0.3
+  torque_reward_coeff: -2e-5
+
+algorithm:
+  discount_factor: 0.99
+  replay_start_size: 10000
+  minibatch_size: 256
+  learning_rate: 3e-4
+  temperature_optimizer_lr: 3e-4
+  replay_buffer_size: 1e6
+  total_algorithm_updates: 1000
+
+testing:
+  seconds: 10
+  control_dt: 0.05
+  record_video: True
+  render: True

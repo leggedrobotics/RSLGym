@@ -1,0 +1,25 @@
+environment:
+  seed: 999
+  render: True
+  record_video: True
+  num_envs: 100
+  eval_every_n: 50
+  num_threads: 20
+  simulation_dt: 0.0025
+  control_dt: 0.01
+  max_time: 4.0
+  forward_vel_reward_coeff: 2.0
+  torque_reward_coeff: -1.e-5
+
+algorithm:
+  discount_factor: 0.996
+  entropy_coef: 0.0
+  learning_rate: 5.e-4
+  learning_rate_gamma: 1.0 #0.98
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  gae_lam: 0.95
+  num_mini_batches: 4 
+  num_learning_epochs: 10
+  cliprange: 0.2
+  total_algorithm_updates: 100000

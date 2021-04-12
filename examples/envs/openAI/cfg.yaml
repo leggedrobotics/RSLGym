@@ -1,0 +1,19 @@
+environment:
+  seed: 999
+  env_name: LunarLanderContinuous-v2
+  render: True
+  record_video: True
+  num_envs: 10
+  steps_per_env_and_episode: 500
+
+algorithm:
+  discount_factor: 0.99
+  ent_coef: 0.0
+  learning_rate: 5e-4
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  gae_lam: 0.97
+  num_mini_batches: 2
+  num_epochs: 10
+  cliprange: 0.2
+  total_algo_updates: 1000
