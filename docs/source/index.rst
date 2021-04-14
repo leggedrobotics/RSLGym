@@ -6,7 +6,7 @@ It provides an interface to train reinforcement learning agents that are simulat
 
 For efficiency, experience generation in RaiSim is parallelized using a vectorized environment in C++. The vectorized environment is wrapped using pybind11 such that it can be used with RL algorithms implemented in python.
 
-Currently, we provide examples for training agents with a custom PPO implementation and the algorithms provided by PFRL (https://github.com/pfnet/pfrl) which are implemented using pyTorch.
+Currently, we provide examples for training agents with custom PPO and TRPO implementations and the algorithms provided by PFRL (https://github.com/pfnet/pfrl) which are implemented using pyTorch.
 
 .. toctree::
    :maxdepth: 3
