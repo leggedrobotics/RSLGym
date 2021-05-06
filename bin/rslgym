@@ -2,7 +2,6 @@
 import subprocess
 import argparse
 import os
-import sys
 from termcolor import colored
 import rslgym.wrapper
 
@@ -33,6 +32,8 @@ def main():
     parser_debug.add_argument('render', type=str,
                               choices=['render', 'no_render'],
                               help='Choose render or no_render.')
+    parser_debug.add_argument('--name', type=str,
+                              help='Name of the env package', default="")
     parser_debug.add_argument('--resource', type=str, default='./rsc',
                               help='Enviroment resource folder path. Default is /rsc .')
     parser_debug.add_argument('--cfg', type=str, default='./cfg.yaml',
@@ -87,11 +88,13 @@ def debug(args, unknown):
     module_path = os.path.abspath(rslgym.wrapper.__file__)
     dirname = os.path.dirname(module_path)
     root = os.path.realpath(dirname)
-    builddir = os.path.realpath(root + "/build/temp.linux-x86_64-" + str(sys.version_info.major) + "." + str(sys.version_info.minor))
+    if args.name:
+        env_name = args.name
+    builddir = os.path.realpath(root + "/build/temp/rslgym_wrapper_" + env_name)
 
     if not os.path.exists(builddir + "/debug_app"):
         print('Looking for the debug_app here: ', builddir)
-        print(colored("[ERROR]: The environment is not built with debug argument. Please build with --debug option.", 'red'))
+        print(colored("[ERROR]: Could not find the debug app. Please build with --debug option or provide the correct --name when calling it.", 'red'))
         exit(0)
     debug_app = os.path.realpath(builddir + "/debug_app")
 
