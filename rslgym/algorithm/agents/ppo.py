@@ -68,8 +68,6 @@ class PPO:
         # Log
         self.log_dir = os.path.join(log_dir, datetime.now().strftime('%b%d_%H-%M-%S'))
         self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
-        self.tot_timesteps = 0
-        self.tot_time = 0
         self.ep_infos = []
         self.log_intervals = log_intervals
         self.update_num = 0
@@ -106,29 +104,24 @@ class PPO:
         self.storage.clear()
         self.update_num = update
 
+        if log_this_iteration:
+            self.log({**locals(), **infos, 'ep_infos': self.ep_infos, 'it': update})
+
         self.ep_infos.clear()
 
-    def log(self, variables, width=80, pad=28):
-        self.tot_timesteps += self.num_transitions_per_env * self.num_envs
+    def log(self, variables):        
+        if variables['ep_infos']:
+            for key in variables['ep_infos'][0]:
+                value = np.mean([ep_info[key] for ep_info in variables['ep_infos']])
+                self.writer.add_scalar('Episode/' + key, value, variables['it'])
 
-        ep_string = f''
-        for key in variables['ep_infos'][0]:
-            value = np.mean([ep_info[key] for ep_info in variables['ep_infos']])
-            self.writer.add_scalar('Episode/' + key, value, variables['it'])
-            ep_string += f"""{f'Mean episode {key}:':>{pad}} {value:.4f}\n"""
         mean_std = self.actor.distribution.log_std.exp().mean()
+        mean_return = self.storage.returns.mean()
 
         self.writer.add_scalar('Loss/value_function', variables['mean_value_loss'], variables['it'])
         self.writer.add_scalar('Loss/surrogate', variables['mean_surrogate_loss'], variables['it'])
         self.writer.add_scalar('Policy/mean_noise_std', mean_std.item(), variables['it'])
-
-        log_string = (f"""{'#' * width}\n"""
-                      f"""{'Value function loss:':>{pad}} {variables['mean_value_loss']:.4f}\n"""
-                      f"""{'Surrogate loss:':>{pad}} {variables['mean_surrogate_loss']:.4f}\n"""
-                      f"""{'Mean action noise std:':>{pad}} {mean_std.item():.2f}\n""")
-        log_string += ep_string
-
-        print(log_string)
+        self.writer.add_scalar('Policy/discounted_rewards', mean_return.item(), variables['it'])
 
     def _train_step(self):
         mean_value_loss = 0

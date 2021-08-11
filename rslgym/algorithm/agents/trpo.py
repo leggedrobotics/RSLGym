@@ -67,8 +67,6 @@ class TRPO:
         # Log
         self.log_dir = os.path.join(log_dir, datetime.now().strftime('%b%d_%H-%M-%S'))
         self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
-        self.tot_timesteps = 0
-        self.tot_time = 0
         self.ep_infos = []
         self.log_intervals = log_intervals
 
@@ -109,13 +107,24 @@ class TRPO:
 
         self.update_num = update
 
+        if log_this_iteration:
+            self.log({**locals(), **infos, 'ep_infos': self.ep_infos, 'it': update})
+
         self.ep_infos.clear()
 
+    def log(self, variables):
+        if variables['ep_infos']:
+            for key in variables['ep_infos'][0]:
+                value = np.mean([ep_info[key] for ep_info in variables['ep_infos']])
+                self.writer.add_scalar('Episode/' + key, value, variables['it'])
+        
         mean_std = self.actor.distribution.log_std.exp().mean()
-
-        self.writer.add_scalar('Loss/value_function', mean_value_loss, update)
-        self.writer.add_scalar('Loss/surrogate', surrogate_loss, update)
-        self.writer.add_scalar('Policy/mean_noise_std', mean_std.item(), update)
+        mean_return = self.storage.returns.mean()
+        
+        self.writer.add_scalar('Loss/value_function', variables['mean_value_loss'], variables['it'])
+        self.writer.add_scalar('Loss/surrogate', variables['surrogate_loss'], variables['it'])
+        self.writer.add_scalar('Policy/mean_noise_std', mean_std.item(), variables['it'])
+        self.writer.add_scalar('Policy/discounted_rewards', mean_return.item(), variables['it'])
 
     def _train_step(self):
         mean_value_loss = 0
