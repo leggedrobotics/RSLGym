@@ -12,7 +12,6 @@ environment:
   terminal_reward_coeff: -10
 
 algorithm:
-  gpu: 0  # None for cpu
   discount_factor: 0.99
   ent_coef: 0
   learning_rate: 1e-4
