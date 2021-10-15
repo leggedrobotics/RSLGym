@@ -17,6 +17,7 @@ Add the following lines to **~/.bashrc**::
 
 Open a new terminal tab and create your virtual environment::
 
+    source ~/.profile
     mkvirtualenv --system-site-packages rslgym
 
 Pytorch
@@ -27,11 +28,11 @@ Activate the virtualenvironment (if not already active)::
 
 If you have a GPU::
     
-    pip install torch==1.7.1+cu110 torchvision==0.8.2+cu110 torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
+    pip3 install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
 
 For CPU only::
     
-    pip install torch==1.7.1+cpu torchvision==0.8.2+cpu torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
+    pip3 install torch==1.9.1+cpu torchvision==0.10.1+cpu torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
 
 
 RSLGym
@@ -39,7 +40,7 @@ RSLGym
 Install RSLGym (inside the virtual environment)::
 
     cd rslgym
-    pip3 install .
+    pip3 install -e .
 
 
 Other Dependencies
