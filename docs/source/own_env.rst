@@ -69,11 +69,11 @@ Debugging
 ^^^^^^^^^
 To debug your environment.hpp and catch e.g. nasty segmentation faults you can build your environment using the **--debug** flag::
 
-    rslgym build . --name cartpole --debug --CMAKE_PREFIX_PATH $LOCAL_INSTALL
+    rslgym build . --name cart_pole --debug --CMAKE_PREFIX_PATH $LOCAL_INSTALL
 
 This will create a c++ executable which you can debug with **valgrind** using this command::
 
-    rslgym debug <render/no_render> --resource <relative-path-to-rsc-folder-default:/rsc> --cfg <relative-path_to_cfg-default:/cfg.yaml>
+    rslgym debug <render/no_render> --name cart_pole --resource <relative-path-to-rsc-folder-default:/rsc> --cfg <relative-path_to_cfg-default:/cfg.yaml>
 
 For more information about the **debug** function, call::
 
