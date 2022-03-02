@@ -4,22 +4,31 @@ import os
 import ntpath
 import subprocess
 import argparse
+from dataclasses import asdict, is_dataclass
+from ruamel.yaml import dump, RoundTripDumper
 
 class ConfigurationSaver:
-    def __init__(self, log_dir, save_items, args, save_git=True):
+    def __init__(self, log_dir, save_items=[], args=None, save_git=True, dataclass_configs=[]):
         self._data_dir = log_dir + '/' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         os.makedirs(self._data_dir)
 
-        if save_items is not None:
-            for save_item in save_items:
-                base_file_name = ntpath.basename(save_item)
-                copyfile(save_item, self._data_dir + '/' + base_file_name)
+        for save_item in save_items:
+            base_file_name = ntpath.basename(save_item)
+            copyfile(save_item, self._data_dir + '/' + base_file_name)
 
-        if isinstance(args, argparse.Namespace):
-            self.save_arg_parser(self._data_dir, args)
+        if args is not None:
+            if isinstance(args, argparse.Namespace):
+                self.save_arg_parser(self._data_dir, args)
 
         if save_git:
             self.save_git_information(self._data_dir)
+
+        for cfg in dataclass_configs:
+            assert is_dataclass(cfg)
+            dict_data = asdict(cfg)
+            name = type(cfg).__name__ + ".yaml"
+            self.save_dict_as_yaml(self._data_dir, dict_data, name)
+
 
     @property
     def data_dir(self):
@@ -49,6 +58,10 @@ class ConfigurationSaver:
         with open(os.path.join(outdir, "args.txt"), "w") as f:
             for key, value in args.__dict__.items():
                 f.write(key + ': ' + str(value) + '\n')
+
+    def save_dict_as_yaml(self, outdir, d, name):
+        with open(os.path.join(outdir, name), 'w') as f:
+            dump(d, f, Dumper=RoundTripDumper)
 
 
 def TensorboardLauncher(directory_path):
