@@ -2,6 +2,7 @@
 import subprocess
 import argparse
 import os
+import glob
 from termcolor import colored
 import rslgym.wrapper
 
@@ -10,6 +11,7 @@ def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
 
+    # Build
     parser_build = subparsers.add_parser('build', help='Build python wrapper of your envioronment. see `rslgym build -h` for command usage')
 
     parser_build.add_argument('env', type=str,
@@ -27,6 +29,7 @@ def main():
     parser_build.set_defaults(handler=build)
 
 
+    # Debug
     parser_debug = subparsers.add_parser('debug', help='Use valgrind for debugging. see `rslgym debug -h` for command usage')
 
     parser_debug.add_argument('render', type=str,
@@ -41,6 +44,14 @@ def main():
     parser_debug.add_argument('--xml', type=str,
                                help='Result will be outputed as this xml file name. You can visualize with `valkyrie -l <xml file>`')
     parser_debug.set_defaults(handler=debug)
+
+
+    # Clean
+    parser_clean = subparsers.add_parser('clean', help='Delete build files.')
+
+    parser_clean.add_argument('--name', type=str,
+                              help='Name of the env package', default="")
+    parser_clean.set_defaults(handler=clean)
 
     args, unknown = parser.parse_known_args()
 
@@ -81,6 +92,7 @@ def build(args, unknown):
     if args.opencv:
         command += ["--opencv"]
     res = subprocess.run(command)
+    link_python_files(absolute_path, env_name)
 
 
 def debug(args, unknown):
@@ -108,6 +120,49 @@ def debug(args, unknown):
 
     command = ["valgrind", *options, debug_app, resource_path, config_path, args.render] + unknown
     res = subprocess.run(command)
+
+
+def clean(args, unknown):
+    module_path = os.path.abspath(rslgym.wrapper.__file__)
+    dirname = os.path.dirname(module_path)
+    root = os.path.realpath(dirname)
+    if args.name:
+        builddir = os.path.realpath(root + "/build/temp/rslgym_wrapper_" + args.name)
+    else:
+        builddir = os.path.realpath(root + "/build")
+    command = ["rm", "-rf", builddir] + unknown
+    subprocess.run(command)
+    print('removed ', builddir)
+
+
+def link_python_files(env_path, env_name):
+    # link python files
+    print('\n\n')
+    os.chdir(env_path)
+    module_name = "rslgym_wrapper_" + env_name
+    try:
+        # Refresh sys.path
+        import site
+        from importlib import reload
+        reload(site)
+        # import
+        module = __import__(module_name)
+    except:
+        print('Could not import {}. Try re-run build command.'.format(module_name))
+        return
+    destination = module_name + "_scripts"
+    for python_file in glob.glob("*.py"):
+        module_dir = os.path.join(os.path.dirname(module.__file__), destination)
+        os.makedirs(module_dir, exist_ok=True)
+        path = os.path.join(env_path, python_file)
+        command = ['ln', '-s', path, module_dir + "/"]
+        subprocess.run(command)
+        command = ['touch', module_dir + "/__init__.py"]
+        subprocess.run(command)
+        print('Found python file, {} in {}'.format(python_file, env_path))
+        print('Installed into ' + destination + "/" + python_file)
+        print('You can import your module as {}.{}\n'.format(destination,
+            os.path.splitext(python_file)[0]))
 
 
 if __name__ == '__main__':
