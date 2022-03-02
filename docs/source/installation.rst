@@ -37,8 +37,10 @@ For CPU only::
 
 RSLGym
 ^^^^^^^^^^^^
-Install RSLGym (inside the virtual environment)::
+Clone and install RSLGym (inside the virtual environment)::
 
+    cd WORKSPACE
+    git clone <rslgym_repo>
     cd rslgym
     pip3 install -e .
 
