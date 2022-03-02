@@ -29,7 +29,7 @@ class Actor:
         return [*self.architecture.parameters(), *self.distribution.parameters()]
 
     def noiseless_action(self, obs):
-        return self.architecture(torch.from_numpy(obs).to(self.device))
+        return self.architecture(obs)
 
     def save_deterministic_graph(self, example_input, file_name, device='cpu'):
         # example_input = torch.randn(1, self.architecture.input_shape[0]).to(device)

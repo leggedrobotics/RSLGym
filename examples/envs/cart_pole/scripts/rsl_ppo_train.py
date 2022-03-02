@@ -80,7 +80,6 @@ def main():
     fig, ax = plt.subplots()
     for update in range(cfg['algorithm']['total_algo_updates']):
 
-        start = time.time()
         obs = env.reset()
         reward_ll_sum = 0
         done_sum = 0
@@ -97,7 +96,7 @@ def main():
                 obs, reward_ll, dones, _ = env.step(action_ll.cpu().detach().numpy(), True)
                 # print(time.time()-t)
 
-            ppo_training.save_training(cfg_saver.data_dir, update, update)
+            ppo_training.save_training(cfg_saver.data_dir, update)
             obs = env.reset()
             env.stop_recording_video()
             env.hide_window()
@@ -115,29 +114,12 @@ def main():
 
         ppo_training.update(actor_obs=obs,
                             value_obs=obs,
-                            log_this_iteration=update % 10 == 0,
+                            log_this_iteration=update % 1 == 0,
                             update=update)
-        end = time.time()
 
         average_ll_performance = reward_ll_sum / total_steps_per_episode
-        average_dones = done_sum / total_steps_per_episode
         avg_rewards.append(average_ll_performance)
-        avg_ep_leng = ep_len.mean()
 
-        ppo_training.writer.add_scalar('Policy/average_reward', average_ll_performance, update)
-        ppo_training.writer.add_scalar('Policy/average_dones', average_dones, update)
-        ppo_training.writer.add_scalar('Training/elapsed_time_episode', end - start, update)
-        ppo_training.writer.add_scalar('Training/fps', total_steps_per_episode / (end - start), update)
-        ppo_training.writer.add_scalar('Policy/avg_ep_len', avg_ep_leng, update)
-
-        print('----------------------------------------------------')
-        print('{:>6}th iteration'.format(update))
-        print('{:<40} {:>6}'.format("average ll reward: ", '{:0.10f}'.format(average_ll_performance)))
-        print('{:<40} {:>6}'.format("dones: ", '{:0.6f}'.format(average_dones)))
-        print('{:<40} {:>6}'.format("avg_ep_len: ", '{:0.6f}'.format(avg_ep_leng)))
-        print('{:<40} {:>6}'.format("time elapsed in this iteration: ", '{:6.4f}'.format(end - start)))
-        print('{:<40} {:>6}'.format("fps: ", '{:6.0f}'.format(total_steps_per_episode / (end - start))))
-        print('----------------------------------------------------\n')
 
         if update > 100 and len(avg_rewards) > 100:
             ax.plot(range(len(avg_rewards)), savgol_filter(avg_rewards, 51, 3))

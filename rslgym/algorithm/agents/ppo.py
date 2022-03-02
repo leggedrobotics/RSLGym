@@ -9,7 +9,77 @@ from torch.utils.tensorboard import SummaryWriter
 
 import numpy as np
 from rslgym.algorithm.storage.rollout import RolloutStorage
-# from .storage import RolloutStorage
+from dataclasses import dataclass
+
+
+@dataclass
+class PPOLog:
+    writer: SummaryWriter
+    iteration: int = 0
+
+    @dataclass
+    class PrintLog:
+        steps: int = 0
+        average_reward: float = 0.
+        average_dones: float = 0.
+        wall_time: float = time.time()
+        noise_std: np.array = np.zeros(1)
+
+        reward_sum: float = 0.
+        dones_sum: float = 0.
+    print_log: PrintLog = PrintLog()
+
+    @dataclass
+    class SummaryLog:
+        @dataclass
+        class Loss:
+            value_loss: float = 0.
+            surrogate_loss: float = 0.
+        loss: Loss = Loss()
+
+        @dataclass
+        class Policy:
+            average_reward: float = 0.
+            average_dones: float = 0.
+            mean_noise_std: float = 0.
+            discounted_rewards: float = 0.
+        policy: Policy = Policy()
+
+    summary_log: SummaryLog = SummaryLog()
+
+    def update(self, reward, dones):
+        self.print_log.steps += reward.shape[0]
+        self.print_log.reward_sum += np.sum(reward)
+        self.print_log.dones_sum += np.sum(dones)
+        self.print_log.average_reward = self.print_log.reward_sum / self.print_log.steps
+        self.print_log.average_dones = self.print_log.dones_sum / self.print_log.steps
+        self.summary_log.policy.average_reward = self.print_log.average_reward
+        self.summary_log.policy.average_dones = self.print_log.average_dones
+
+    def reset(self):
+        self.print_log.steps = 0
+        self.print_log.reward_sum = 0.
+        self.print_log.dones_sum = 0.
+        self.print_log.wall_time = time.time()
+
+    def __str__(self):
+        s = ('----------------------------------------------------\n'
+            +'{:>6}th iteration\n'.format(self.iteration)
+            +'{:<40} {:>6}\n'.format("average reward: ", '{:0.10f}'.format(self.print_log.average_reward))
+            +'{:<40} {:>6}\n'.format("dones: ", '{:0.6f}'.format(self.print_log.average_dones))
+            +'{:<40} {:>6}\n'.format("time elapsed in this iteration: ", '{:6.4f}'.format(time.time() - self.print_log.wall_time))
+            +'{:<40} {:>6}\n'.format("fps: ", '{:6.0f}'.format(self.print_log.steps/ (time.time() - self.print_log.wall_time + 1e-8)))
+            +'{:<40} \n{}\n'.format("noise_std: ", self.print_log.noise_std))
+        return s
+
+    def write_summary(self, extra_info={}):
+        for k, v in self.summary_log.__dict__.items():
+            for k_, v_ in v.__dict__.items():
+                name = "{}/{}".format(k, k_)
+                self.writer.add_scalar(name, v_, self.iteration)
+        for k, v in extra_info.items():
+            name = "Extra/{}".format(k)
+            self.writer.add_scalar(name, v, self.iteration)
 
 
 class PPO:
@@ -68,10 +138,10 @@ class PPO:
         # Log
         self.log_dir = os.path.join(log_dir, datetime.now().strftime('%b%d_%H-%M-%S'))
         self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
-        self.ep_infos = []
+        self.log = PPOLog(writer=self.writer)
+        self.ep_infos = {}
         self.log_intervals = log_intervals
         self.update_num = 0
-
 
         # temps
         self.actions = None
@@ -79,49 +149,55 @@ class PPO:
         self.actor_obs = None
 
     def observe(self, actor_obs):
-        self.actor_obs = actor_obs
-        self.actions, self.actions_log_prob = self.actor.sample(torch.from_numpy(actor_obs).to(self.device))
-        # self.actions = np.clip(self.actions.numpy(), self.env.action_space.low, self.env.action_space.high)
+        with torch.no_grad():
+            self.actor_obs = actor_obs
+            self.actions, self.actions_log_prob = self.actor.sample(torch.from_numpy(actor_obs).to(self.device))
         return self.actions.cpu().numpy()
 
     def step(self, value_obs, rews, dones, infos):
-        values = self.critic.predict(torch.from_numpy(value_obs).to(self.device))
+        with torch.no_grad():
+            values = self.critic.predict(torch.from_numpy(value_obs).to(self.device))
         self.storage.add_transitions(self.actor_obs, value_obs, self.actions, rews, dones, values,
                                      self.actions_log_prob)
 
+        self.log.update(rews, dones)
         # Book keeping
         for info in infos:
             ep_info = info.get('episode')
             if ep_info is not None:
-                self.ep_infos.append(ep_info)
+                self.ep_infos.update(ep_info)
 
-    def update(self, actor_obs, value_obs, log_this_iteration, update):
+    def act(self, actor_obs, noiseless=True):
+        with torch.no_grad():
+            if noiseless:
+                actions = self.actor.noiseless_action(torch.from_numpy(actor_obs).to(self.device))
+            else:
+                actions, _ = self.actor.sample(torch.from_numpy(actor_obs).to(self.device))
+        return actions.cpu().numpy()
+
+    def update(self, actor_obs, value_obs, log_this_iteration=False, update=0):
         last_values = self.critic.predict(torch.from_numpy(value_obs).to(self.device))
 
         # Learning step
         self.storage.compute_returns(last_values.to(self.device), self.gamma, self.lam)
-        mean_value_loss, mean_surrogate_loss, infos = self._train_step()
+        infos = self._train_step()
         self.storage.clear()
         self.update_num = update
 
         if log_this_iteration:
-            self.log({**locals(), **infos, 'ep_infos': self.ep_infos, 'it': update})
+            self.log.iteration = update
+            self.add_log({**locals(), **infos, 'ep_infos': self.ep_infos, 'it': update})
 
         self.ep_infos.clear()
 
-    def log(self, variables):        
-        if variables['ep_infos']:
-            for key in variables['ep_infos'][0]:
-                value = np.mean([ep_info[key] for ep_info in variables['ep_infos']])
-                self.writer.add_scalar('Episode/' + key, value, variables['it'])
+    def add_log(self, extra_info):        
+        self.log.summary_log.policy.discounted_rewards = self.storage.returns.mean().item()
+        self.log.summary_log.policy.mean_noise_std = self.actor.distribution.log_std.exp().mean().item()
+        self.log.print_log.noise_std = self.actor.distribution.log_std.exp().detach().cpu().numpy()
 
-        mean_std = self.actor.distribution.log_std.exp().mean()
-        mean_return = self.storage.returns.mean()
-
-        self.writer.add_scalar('Loss/value_function', variables['mean_value_loss'], variables['it'])
-        self.writer.add_scalar('Loss/surrogate', variables['mean_surrogate_loss'], variables['it'])
-        self.writer.add_scalar('Policy/mean_noise_std', mean_std.item(), variables['it'])
-        self.writer.add_scalar('Policy/discounted_rewards', mean_return.item(), variables['it'])
+        self.log.write_summary(extra_info=extra_info['ep_infos'])
+        print(self.log)
+        self.log.reset()
 
     def _train_step(self):
         mean_value_loss = 0
@@ -166,18 +242,22 @@ class PPO:
         mean_value_loss /= num_updates
         mean_surrogate_loss /= num_updates
 
-        return mean_value_loss, mean_surrogate_loss, locals()
+        self.log.summary_log.loss.value_loss = mean_value_loss
+        self.log.summary_log.loss.surrogate_loss = mean_surrogate_loss
 
-    def save_training(self, dirname, curriculum, epoch):
-        print('save training. current curriculum is ', curriculum)
+        return locals()
+
+    def save_training(self, dirname, epoch=0, info={}):
+        print("save training.")
         path = dirname + "/snapshot" + str(epoch) + ".pt"
-        torch.save({
+        save_dict = {
             'epoch': epoch,
             'actor_state_dict': self.actor.state_dict(),
             'critic_state_dict': self.critic.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-            'curriculum': curriculum,
-            }, path)
+            'info': info
+            }
+        torch.save(save_dict, path)
         print('saved training to ', path)
 
     def load_training(self, dirname, epoch, load_optimizer=True):
@@ -188,6 +268,5 @@ class PPO:
         self.critic.load_state_dict(snapshot['critic_state_dict'])
         if load_optimizer:
             self.optimizer.load_state_dict(snapshot['optimizer_state_dict'])
-        print('loaded epoch is {}. curriculum is {}'.format(snapshot['epoch'], snapshot['curriculum']))
-        return snapshot['epoch'], snapshot['curriculum']
-
+        print('loaded epoch is {}.'.format(snapshot['epoch']))
+        return snapshot['epoch'], snapshot['info']

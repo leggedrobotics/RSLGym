@@ -107,7 +107,6 @@ def main():
     fig, ax = plt.subplots()
     for update in range(cfg['algorithm']['total_algorithm_updates']):
 
-        start = time.time()
         obs = env.reset()
 
         reward_ll_sum = 0
@@ -125,7 +124,7 @@ def main():
                 action_ll, _ = actor.sample(torch.from_numpy(obs).to(agent.device))
                 obs, reward_ll, dones, info = env.step(action_ll.cpu().detach().numpy(), True)
 
-            agent.save_training(cfg_saver.data_dir, update, update)
+            agent.save_training(cfg_saver.data_dir, update)
             obs = env.reset()
             if cfg['environment']['record_video']:
                 env.stop_recording_video()
@@ -152,34 +151,12 @@ def main():
 
         agent.update(actor_obs=obs,
                      value_obs=obs,
-                     log_this_iteration=update % 10 == 0,
+                     log_this_iteration=update % 1 == 0,
                      update=update)
-        end = time.time()
         actor.distribution.enforce_minimum_std((torch.ones(12) * 0.2).to(device))
 
         average_ll_performance = reward_ll_sum / total_steps_per_episode
-        average_dones = done_sum / total_steps_per_episode
         avg_rewards.append(average_ll_performance)
-        if len(ep_len_collected)> 0:
-            avg_ep_leng = sum(ep_len_collected)/len(ep_len_collected) #incorrect
-        else:
-            avg_ep_leng = n_steps
-
-        agent.writer.add_scalar('Policy/average_reward', average_ll_performance, update)
-        agent.writer.add_scalar('Policy/average_dones', average_dones, update)
-        agent.writer.add_scalar('Training/elapsed_time_episode', end - start, update)
-        agent.writer.add_scalar('Training/fps', total_steps_per_episode / (end - start), update)
-        agent.writer.add_scalar('Policy/avg_ep_len', avg_ep_leng, update)
-
-        print('----------------------------------------------------')
-        print('{:>6}th iteration'.format(update))
-        print('{:<40} {:>6}'.format("average ll reward: ", '{:0.10f}'.format(average_ll_performance)))
-        print('{:<40} {:>6}'.format("dones: ", '{:0.6f}'.format(average_dones)))
-        print('{:<40} {:>6}'.format("avg_ep_len: ", '{:0.6f}'.format(avg_ep_leng)))
-        print('{:<40} {:>6}'.format("time elapsed in this iteration: ", '{:6.4f}'.format(end - start)))
-        print('{:<40} {:>6}'.format("fps: ", '{:6.0f}'.format(total_steps_per_episode / (end - start))))
-        print('{:<40} {:>6}'.format("std: ", '{}'.format(actor.distribution.log_std.exp())))
-        print('----------------------------------------------------\n')
 
         if update > 100 and len(avg_rewards) > 100:
             ax.plot(range(len(avg_rewards)), savgol_filter(avg_rewards, 51, 3))

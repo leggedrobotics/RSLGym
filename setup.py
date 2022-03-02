@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name='rslgym',
-    version='0.2.0',
+    version='0.3.0',
     author='Takahiro Miki',
     license="MIT",
     packages=find_packages(),

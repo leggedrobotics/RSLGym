@@ -136,10 +136,8 @@ def main():
     for update in range(cfg['algorithm']['total_algo_updates']):
         ax.set(xlabel='iteration', ylabel='avg performance', title='average performance')
         ax.grid()
-        start = time.time()
         reward_ll_sum = 0
         done_sum = 0
-        average_dones = 0.
 
         # evaluate
         if update % 50 == 0:
@@ -157,7 +155,7 @@ def main():
                     obs_sample = np.array(obs_sample).reshape(1, -1).astype(np.float32)
                     break
 
-            agent.save_training(cfg_saver.data_dir, update, update)
+            agent.save_training(cfg_saver.data_dir, update)
 
         for step in range(cfg['environment']['steps_per_env_and_episode']):
             episode_len += 1
@@ -180,15 +178,12 @@ def main():
             env.reset(not_end)
             obs = env.get_observation()
             obs = obs_to_numpy(obs)
-        mid = time.time()
         agent.update(actor_obs=obs,
                      value_obs=obs,
-                     log_this_iteration=update % 10 == 0,
+                     log_this_iteration=update % 1 == 0,
                      update=update)
 
-        end = time.time()
         average_ll_performance = reward_ll_sum / total_steps
-        average_dones = done_sum / total_steps
         avg_rewards.append(average_ll_performance)
 
         actor.distribution.enforce_minimum_std((torch.ones(action_space.low.size)*0.2).to(device))
@@ -200,16 +195,6 @@ def main():
         fig.savefig(cfg_saver.data_dir + '/demo.png', bbox_inches='tight')
 
         ax.clear()
-
-        print('----------------------------------------------------')
-        print('{:>6}th iteration'.format(update))
-        print('{:<40} {:>6}'.format("average ll reward: ", '{:0.10f}'.format(average_ll_performance)))
-        print('{:<40} {:>6}'.format("dones: ", '{:0.6f}'.format(average_dones)))
-        print('{:<40} {:>6}'.format("time elapsed in this iteration: ", '{:6.4f}'.format(end - start)))
-        print('{:<40} {:>6}'.format("fps: ", '{:6.0f}'.format(total_steps / (end - start))))
-        print('std: ')
-        print(np.exp(actor.distribution.log_std.cpu().detach().numpy()))
-        print('----------------------------------------------------\n')
 
 
 if __name__ == "__main__":
