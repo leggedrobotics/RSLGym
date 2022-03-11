@@ -11,7 +11,7 @@ To run the examples that use PFRL algorithms install PFRL in your virtual enviro
 
 To run the openAI box2D examples install box2D::
 
-  pip3 install box2d
+  pip3 install box2d-py box2d-kengz
 
 
 RaiSim Cart Pole
@@ -68,4 +68,4 @@ OpenAI Gym
 
 Example of training openAI gym environments with PPO.
 
-No need to compile anything. Just run the training scripts in your virtual environment and specify the environment in the cfg.yaml.
+No need to compile anything. Just run the training scripts in your virtual environment.

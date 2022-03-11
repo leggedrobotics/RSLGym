@@ -12,6 +12,6 @@ setup(
     author_email='takahiro.miki1992@gmail.com',
     description='RSL version of raisim gym.',
     long_description='',
-    install_requires=['gym', 'ruamel.yaml', 'numpy', 'termcolor', 'cloudpickle', 'tensorboard'],
+    install_requires=['gym==0.22.0', 'ruamel.yaml', 'numpy', 'termcolor', 'cloudpickle', 'tensorboard'],
     scripts=['bin/rslgym'],
 )

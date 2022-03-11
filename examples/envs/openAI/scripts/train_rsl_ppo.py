@@ -70,7 +70,6 @@ def main():
     test_env = gym.make(cfg['environment']['env_name'])
     test_env.seed(cfg['environment']['seed'])
 
-    # https://github.com/openai/gym/issues/1925#issuecomment-753465510
     if cfg['environment']['record_video']:
         test_env = wrappers.Monitor(test_env, cfg_saver.data_dir, force=True, video_callable=lambda episode: True)
 

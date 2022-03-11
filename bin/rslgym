@@ -147,8 +147,9 @@ def link_python_files(env_path, env_name):
         reload(site)
         # import
         module = __import__(module_name)
-    except:
-        print('Could not import {}. Try re-run build command.'.format(module_name))
+    except Exception as error:
+        print('Could not import {}.'.format(module_name))
+        print(error.message)
         return
     destination = module_name + "_scripts"
     for python_file in glob.glob("*.py"):

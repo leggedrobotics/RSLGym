@@ -80,7 +80,7 @@ def main():
         model,
         opt,
         obs_normalizer=None,
-        gpu=0,
+        gpu=-1,
         value_func_coef=cfg['algorithm']['vf_coef'],
         update_interval=total_steps_per_iteration,
         minibatch_size=total_steps_per_minibatch,

@@ -20,26 +20,20 @@ Open a new terminal tab and create your virtual environment::
     source ~/.profile
     mkvirtualenv --system-site-packages rslgym
 
-Pytorch
+PyTorch
 ^^^^^^^^^^^^
 Activate the virtualenvironment (if not already active)::
 
     workon rslgym
 
-If you have a GPU::
-    
-    pip3 install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
-
-For CPU only::
-    
-    pip3 install torch==1.9.1+cpu torchvision==0.10.1+cpu torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
+Install the latest stable version of PyTorch using pip following the instructions here https://pytorch.org/get-started/locally/
 
 
 RSLGym
 ^^^^^^^^^^^^
 Clone and install RSLGym (inside the virtual environment)::
 
-    cd WORKSPACE
+    cd $WORKSPACE
     git clone <rslgym_repo>
     cd rslgym
     pip3 install -e .
@@ -51,9 +45,9 @@ Yaml-cpp for hyperparameter loading::
 
     sudo apt install libyaml-cpp-dev
 
-Codecs for openAI video playing in standard ubuntu player::
+Dependencies for openAI examples::
 
-    sudo apt install ubuntu-restricted-extras
+    sudo apt install ubuntu-restricted-extras swig
 
 Valgrind for debugging **environment.hpp**::
 

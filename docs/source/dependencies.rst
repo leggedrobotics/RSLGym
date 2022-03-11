@@ -21,7 +21,7 @@ Install the RaiSim rigid body simulator.
 
 *  Clone repo and install additional dependencies::
 
-      cd WORKSPACE
+      cd $WORKSPACE
       git clone https://github.com/raisimTech/raisimLib.git
       sudo apt install cmake
 
@@ -50,7 +50,7 @@ PyBind11
 ^^^^^^^^
 Install the PyBind11 library::
 
-    cd WORKSPACE/raisimLib/thirdParty/pybind11
+    cd $WORKSPACE/raisimLib/thirdParty/pybind11
     mkdir build
     cd build
     cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$LOCAL_INSTALL -DPYBIND11_TEST=FALSE

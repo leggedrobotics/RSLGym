@@ -75,7 +75,7 @@ def main():
         for i in range(test_steps):
             if i % 100 == 0:
                 env.reset()
-            act = actor.noiseless_action(ob).cpu().detach().numpy()
+            act = actor.noiseless_action(torch.from_numpy(ob)).cpu().detach().numpy()
             ob, rew, done, info = env.step(act, visualize=cfg['environment']['render'])
 
 
