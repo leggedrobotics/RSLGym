@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from rslgym.wrapper import VecEnvPython
-from rslgym_wrapper_cart_pole import cart_pole_example_env
 import os
 import argparse
 import time
@@ -15,6 +13,8 @@ from scipy.signal import savgol_filter
 import torch
 from torch import nn
 
+from rslgym.wrapper import VecEnvPython
+from rslgym_wrapper_cart_pole import cart_pole_example_env
 import rslgym.algorithm.modules as rslgym_module
 from rslgym.algorithm.agents.ppo import PPO
 from rslgym.algorithm.utils import ConfigurationSaver

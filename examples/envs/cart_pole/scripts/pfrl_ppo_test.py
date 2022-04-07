@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from rslgym.wrapper import VecEnvPython  # import python wrapper interface
-from rslgym_wrapper_cart_pole import cart_pole_example_env
 import os
 import datetime
 import argparse
@@ -11,6 +9,8 @@ import torch
 from torch import nn
 from distutils.version import LooseVersion
 
+from rslgym.wrapper import VecEnvPython  # import python wrapper interface
+from rslgym_wrapper_cart_pole import cart_pole_example_env
 import pfrl
 
 import matplotlib.pyplot as plt
